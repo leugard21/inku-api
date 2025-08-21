@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/leugard21/inku-api/types"
+	"github.com/lib/pq"
 )
 
 type Store struct {
@@ -15,18 +16,18 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) CreateComic(comic *types.Comic) error {
+func (s *Store) CreateComic(c *types.Comic) error {
 	return s.db.QueryRow(`
-        INSERT INTO comics (title, description, author, cover_url, status, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        INSERT INTO comics (title, description, author, cover_url, status, genres, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
         RETURNING id, created_at, updated_at`,
-		comic.Title, comic.Description, comic.Author, comic.CoverURL, comic.Status,
-	).Scan(&comic.ID, &comic.CreatedAt, &comic.UpdatedAt)
+		c.Title, c.Description, c.Author, c.CoverURL, c.Status, pq.Array(c.Genres),
+	).Scan(&c.ID, &c.CreatedAt, &c.UpdatedAt)
 }
 
 func (s *Store) GetAllComics() ([]*types.Comic, error) {
 	rows, err := s.db.Query(`
-		SELECT id, title, description, author, cover_url, status, created_at, updated_at
+		SELECT id, title, description, author, cover_url, status, genres, created_at, updated_at
 		FROM comics
 		ORDER BY created_at DESC`)
 	if err != nil {
@@ -46,15 +47,12 @@ func (s *Store) GetAllComics() ([]*types.Comic, error) {
 }
 
 func (s *Store) GetComicByID(id int64) (*types.Comic, error) {
-	row := s.db.QueryRow(`
-		SELECT id, title, description, author, cover_url, status, created_at, updated_at
-		FROM comics WHERE id = $1`, id)
-
 	var c types.Comic
-	if err := row.Scan(&c.ID, &c.Title, &c.Description, &c.Author, &c.CoverURL, &c.Status, &c.CreatedAt, &c.UpdatedAt); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
+	err := s.db.QueryRow(`
+        SELECT id, title, description, author, cover_url, status, genres, created_at, updated_at
+        FROM comics WHERE id=$1`, id).
+		Scan(&c.ID, &c.Title, &c.Description, &c.Author, &c.CoverURL, &c.Status, pq.Array(&c.Genres), &c.CreatedAt, &c.UpdatedAt)
+	if err != nil {
 		return nil, err
 	}
 	return &c, nil
@@ -62,10 +60,8 @@ func (s *Store) GetComicByID(id int64) (*types.Comic, error) {
 
 func (s *Store) SearchComicsAdvanced(q, genre, status, sort string) ([]*types.Comic, error) {
 	baseQuery := `
-        SELECT DISTINCT c.id, c.title, c.description, c.author, c.cover_url, c.status, c.created_at, c.updated_at
+        SELECT c.id, c.title, c.description, c.author, c.cover_url, c.status, c.genres, c.created_at, c.updated_at
         FROM comics c
-        LEFT JOIN comic_genres cg ON c.id = cg.comic_id
-        LEFT JOIN genres g ON g.id = cg.genre_id
         WHERE 1=1
     `
 	args := []interface{}{}
@@ -80,7 +76,7 @@ func (s *Store) SearchComicsAdvanced(q, genre, status, sort string) ([]*types.Co
 	}
 
 	if genre != "" {
-		baseQuery += fmt.Sprintf(" AND g.name ILIKE $%d", idx)
+		baseQuery += fmt.Sprintf(" AND $%d = ANY(c.genres)", idx)
 		args = append(args, genre)
 		idx++
 	}
@@ -113,10 +109,15 @@ func (s *Store) SearchComicsAdvanced(q, genre, status, sort string) ([]*types.Co
 	var comics []*types.Comic
 	for rows.Next() {
 		var c types.Comic
-		if err := rows.Scan(&c.ID, &c.Title, &c.Description, &c.Author, &c.CoverURL, &c.Status, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		if err := rows.Scan(
+			&c.ID, &c.Title, &c.Description, &c.Author,
+			&c.CoverURL, &c.Status, pq.Array(&c.Genres),
+			&c.CreatedAt, &c.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		comics = append(comics, &c)
 	}
+
 	return comics, nil
 }

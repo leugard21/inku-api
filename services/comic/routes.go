@@ -41,6 +41,7 @@ func (h *Handler) handleCreateComic(w http.ResponseWriter, r *http.Request) {
 	description := r.FormValue("description")
 	author := r.FormValue("author")
 	status := r.FormValue("status")
+	genres := r.MultipartForm.Value["genres"]
 
 	if title == "" {
 		utils.WriteError(w, http.StatusBadRequest, errors.New("title is required"))
@@ -49,7 +50,7 @@ func (h *Handler) handleCreateComic(w http.ResponseWriter, r *http.Request) {
 
 	file, header, err := r.FormFile("cover")
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, errors.New("cover image is required"))
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	defer file.Close()
@@ -79,6 +80,7 @@ func (h *Handler) handleCreateComic(w http.ResponseWriter, r *http.Request) {
 		Author:      author,
 		CoverURL:    coverURL,
 		Status:      status,
+		Genres:      genres,
 	}
 
 	if err := h.store.CreateComic(comic); err != nil {

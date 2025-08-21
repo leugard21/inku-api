@@ -16,11 +16,12 @@ type User struct {
 
 type Comic struct {
 	ID          int64     `json:"id"`
-	Title       string    `json:"title" validate:"required"`
+	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Author      string    `json:"author"`
-	CoverURL    string    `json:"coverUrl"`
-	Status      string    `json:"status" validate:"oneof=ongoing completed"`
+	CoverURL    string    `json:"cover_url"`
+	Status      string    `json:"status"`
+	Genres      []string  `json:"genres"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -87,11 +88,11 @@ type LoginPayload struct {
 }
 
 type CreateComicPayload struct {
-	Title       string `json:"title" validate:"required"`
-	Description string `json:"description"`
-	Author      string `json:"author"`
-	CoverURL    string `json:"coverUrl"`
-	Status      string `json:"status" validate:"oneof=ongoing completed"`
+	Title       string   `json:"title" validate:"required"`
+	Description string   `json:"description"`
+	Author      string   `json:"author"`
+	Status      string   `json:"status"`
+	Genres      []string `json:"genres"`
 }
 
 type CreateChapterPayload struct {
