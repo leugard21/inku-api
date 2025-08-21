@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -25,17 +27,14 @@ func GenerateAccessToken(userID int64) (string, error) {
 	return token.SignedString([]byte(configs.Envs.JWTSecret))
 }
 
-func GenerateRefreshToken(userID int64) (string, error) {
-	claims := &Claims{
-		UserID: userID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(
-				time.Duration(7 * time.Now().Day()),
-			)),
-		},
+func GenerateRefreshToken() (string, time.Time, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", time.Time{}, err
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(configs.Envs.JWTSecret))
+	token := hex.EncodeToString(bytes)
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	return token, expiresAt, nil
 }
 
 func ParseToken(tokenStr string) (*Claims, error) {

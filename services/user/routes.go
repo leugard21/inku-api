@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/leugard21/inku-api/types"
@@ -59,15 +60,20 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	refreshToken, err := utils.GenerateRefreshToken(user.ID)
+
+	rt, rtExp, err := utils.GenerateRefreshToken()
 	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := h.store.SaveRefreshToken(user.ID, rt, rtExp); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, map[string]any{
 		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"refresh_token": rt,
 	})
 }
 
@@ -104,15 +110,19 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshToken, err := utils.GenerateRefreshToken(user.ID)
+	rt, rtExp, err := utils.GenerateRefreshToken()
 	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := h.store.SaveRefreshToken(user.ID, rt, rtExp); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	resp := map[string]any{
 		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"refresh_token": rt,
 	}
 	utils.WriteJSON(w, http.StatusOK, resp)
 }
@@ -125,20 +135,36 @@ func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-
-	claims, err := utils.ParseToken(body.RefreshToken)
+	rt, err := h.store.GetRefreshToken(body.RefreshToken)
 	if err != nil {
-		utils.WriteError(w, http.StatusUnauthorized, errors.New("invalid refresh token"))
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if rt == nil || time.Now().After(rt.ExpiresAt) {
+		utils.WriteError(w, http.StatusUnauthorized, errors.New("invalid or expired refresh token"))
 		return
 	}
 
-	accessToken, err := utils.GenerateAccessToken(claims.UserID)
+	_ = h.store.DeleteRefreshToken(body.RefreshToken)
+	newRT, newExp, err := utils.GenerateRefreshToken()
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := h.store.SaveRefreshToken(rt.UserID, newRT, newExp); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Issue new access JWT
+	accessToken, err := utils.GenerateAccessToken(rt.UserID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, map[string]string{
-		"access_token": accessToken,
+	utils.WriteJSON(w, http.StatusOK, map[string]any{
+		"access_token":  accessToken,
+		"refresh_token": newRT,
 	})
 }

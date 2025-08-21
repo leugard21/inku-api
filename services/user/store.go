@@ -3,6 +3,7 @@ package user
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/leugard21/inku-api/types"
 )
@@ -39,4 +40,34 @@ func (s *Store) GetUserByIdentifier(identifier string) (*types.User, error) {
 	}
 
 	return &u, nil
+}
+
+func (s *Store) SaveRefreshToken(userID int64, token string, expiresAt time.Time) error {
+	_, err := s.db.Exec(`
+		INSERT INTO refresh_tokens (token, user_id, expires_at)
+		VALUES ($1, $2, $3)`,
+		token, userID, expiresAt,
+	)
+	return err
+}
+
+func (s *Store) GetRefreshToken(token string) (*types.RefreshToken, error) {
+	row := s.db.QueryRow(`
+		SELECT token, user_id, expires_at, created_at
+		FROM refresh_tokens
+		WHERE token = $1`, token,
+	)
+	var rt types.RefreshToken
+	if err := row.Scan(&rt.Token, &rt.UserID, &rt.ExpiresAt, &rt.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &rt, nil
+}
+
+func (s *Store) DeleteRefreshToken(token string) error {
+	_, err := s.db.Exec(`DELETE FROM refresh_tokens WHERE token = $1`, token)
+	return err
 }
