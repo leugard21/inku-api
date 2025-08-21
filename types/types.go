@@ -62,6 +62,7 @@ type ComicStore interface {
 	CreateComic(comic *Comic) error
 	GetAllComics() ([]*Comic, error)
 	GetComicByID(id int64) (*Comic, error)
+	SearchComicsAdvanced(q, genre, status, sort string) ([]*Comic, error)
 }
 
 type ChapterStore interface {

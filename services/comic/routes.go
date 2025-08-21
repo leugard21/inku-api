@@ -27,6 +27,7 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/comics", h.handleCreateComic).Methods("POST")
 	router.HandleFunc("/comics", h.handleGetComics).Methods("GET")
 	router.HandleFunc("/comic/{id}", h.handleGetComicByID).Methods("GET")
+	router.HandleFunc("/comics/search", h.handleSearchComics).Methods("GET")
 }
 
 func (h *Handler) handleCreateComic(w http.ResponseWriter, r *http.Request) {
@@ -117,4 +118,19 @@ func (h *Handler) handleGetComicByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteJSON(w, http.StatusOK, comic)
+}
+
+func (h *Handler) handleSearchComics(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+	genre := r.URL.Query().Get("genre")
+	status := r.URL.Query().Get("status")
+	sort := r.URL.Query().Get("sort")
+
+	results, err := h.store.SearchComicsAdvanced(q, genre, status, sort)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, results)
 }
