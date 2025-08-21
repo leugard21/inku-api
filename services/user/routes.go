@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -22,8 +23,9 @@ func NewHandler(store types.UserStore) *Handler {
 func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/register", h.handleRegister).Methods("POST")
 	router.HandleFunc("/login", h.handleLogin).Methods("POST")
-
 	router.HandleFunc("/refresh", h.handleRefresh).Methods("POST")
+
+	router.Handle("/me", utils.AuthMiddleware(http.HandlerFunc(h.handleMe))).Methods("GET")
 }
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -167,4 +169,24 @@ func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		"access_token":  accessToken,
 		"refresh_token": newRT,
 	})
+}
+
+func (h *Handler) handleMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := utils.GetUserID(r)
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("unauthorized"))
+		return
+	}
+
+	user, err := h.store.GetUserByID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if user == nil {
+		utils.WriteError(w, http.StatusNotFound, errors.New("user not found"))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, user)
 }

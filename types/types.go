@@ -24,6 +24,7 @@ type RefreshToken struct {
 type UserStore interface {
 	CreateUser(user *User) error
 	GetUserByIdentifier(identifier string) (*User, error)
+	GetUserByID(id int64) (*User, error)
 	SaveRefreshToken(userID int64, token string, expiresAt time.Time) error
 	GetRefreshToken(token string) (*RefreshToken, error)
 	DeleteRefreshToken(token string) error

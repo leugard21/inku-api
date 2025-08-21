@@ -42,6 +42,23 @@ func (s *Store) GetUserByIdentifier(identifier string) (*types.User, error) {
 	return &u, nil
 }
 
+func (s *Store) GetUserByID(id int64) (*types.User, error) {
+	row := s.db.QueryRow(`
+		SELECT id, username, avatar, email, password, created_at
+		FROM users
+		WHERE id = $1`, id,
+	)
+
+	var u types.User
+	if err := row.Scan(&u.ID, &u.Username, &u.Avatar, &u.Email, &u.Password, &u.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &u, nil
+}
+
 func (s *Store) SaveRefreshToken(userID int64, token string, expiresAt time.Time) error {
 	_, err := s.db.Exec(`
 		INSERT INTO refresh_tokens (token, user_id, expires_at)
