@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/leugard21/inku-api/services/comic"
 	"github.com/leugard21/inku-api/services/user"
 )
 
@@ -28,6 +29,12 @@ func (s *APIServer) Run() error {
 	userStore := user.NewStore(s.db)
 	userHandler := user.NewHandler(userStore)
 	userHandler.RegisterRoutes(subrouter)
+
+	comicStore := comic.NewStore(s.db)
+	comicHandler := comic.NewHandler(comicStore)
+	comicHandler.RegisterRoutes(subrouter)
+
+	router.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
 	log.Println("Listening on", s.addr)
 
