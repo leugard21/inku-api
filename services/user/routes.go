@@ -57,7 +57,7 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := utils.GenerateAccessToken(user.ID)
+	accessToken, err := utils.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
@@ -106,7 +106,7 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := utils.GenerateAccessToken(user.ID)
+	accessToken, err := utils.GenerateAccessToken(user.ID, user.Role)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
@@ -148,6 +148,7 @@ func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = h.store.DeleteRefreshToken(body.RefreshToken)
+
 	newRT, newExp, err := utils.GenerateRefreshToken()
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
@@ -158,8 +159,17 @@ func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Issue new access JWT
-	accessToken, err := utils.GenerateAccessToken(rt.UserID)
+	user, err := h.store.GetUserByID(rt.UserID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if user == nil {
+		utils.WriteError(w, http.StatusUnauthorized, errors.New("user not found"))
+		return
+	}
+
+	accessToken, err := utils.GenerateAccessToken(rt.UserID, user.Role)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return

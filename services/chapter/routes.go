@@ -18,8 +18,9 @@ func NewHandler(store types.ChapterStore) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/comics/{id}/chapters", h.handleCreateChapter).Methods("POST")
 	router.HandleFunc("/comics/{id}/chapters", h.handleGetChapters).Methods("GET")
+
+	router.Handle("/chapters", utils.AuthMiddleware(utils.AdminOnly(http.HandlerFunc(h.handleCreateChapter)))).Methods("POST")
 }
 
 func (h *Handler) handleCreateChapter(w http.ResponseWriter, r *http.Request) {

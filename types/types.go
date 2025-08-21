@@ -7,11 +7,11 @@ import (
 type User struct {
 	ID        int64     `json:"id"`
 	Username  string    `json:"username"`
-	Avatar    *string   `json:"avatar,omitempty"`
 	Email     string    `json:"email"`
 	Password  string    `json:"-"`
+	Avatar    string    `json:"avatar"`
+	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type Comic struct {
@@ -72,7 +72,7 @@ type ChapterStore interface {
 }
 
 type PageStore interface {
-	CreatePage(chapterID int64, p *Page)
+	CreatePage(chapterID int64, pageNumber int, imageURL string) error
 	errorGetPagesByChapter(chapterID int64) ([]*Page, error)
 }
 

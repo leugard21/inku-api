@@ -24,10 +24,11 @@ func NewHandler(store types.ComicStore) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/comics", h.handleCreateComic).Methods("POST")
-	router.HandleFunc("/comics", h.handleGetComics).Methods("GET")
-	router.HandleFunc("/comic/{id}", h.handleGetComicByID).Methods("GET")
 	router.HandleFunc("/comics/search", h.handleSearchComics).Methods("GET")
+	router.HandleFunc("/comics", h.handleGetComics).Methods("GET")
+	router.HandleFunc("/comics/{id}", h.handleGetComicByID).Methods("GET")
+
+	router.Handle("/comics", utils.AuthMiddleware(utils.AdminOnly(http.HandlerFunc(h.handleCreateComic)))).Methods("POST")
 }
 
 func (h *Handler) handleCreateComic(w http.ResponseWriter, r *http.Request) {

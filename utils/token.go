@@ -10,13 +10,15 @@ import (
 )
 
 type Claims struct {
-	UserID int64 `json:"user_id"`
+	UserID int64  `json:"user_id"`
+	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func GenerateAccessToken(userID int64) (string, error) {
+func GenerateAccessToken(userID int64, role string) (string, error) {
 	claims := &Claims{
 		UserID: userID,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)),
 		},
@@ -24,7 +26,6 @@ func GenerateAccessToken(userID int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(configs.Envs.JWTSecret))
 }
-
 func GenerateRefreshToken() (string, time.Time, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {

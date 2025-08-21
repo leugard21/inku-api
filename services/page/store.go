@@ -14,13 +14,11 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) CreatePage(chapterID int64, p *types.Page) error {
-	return s.db.QueryRow(`
-        INSERT INTO pages (chapter_id, page_number, image_url, created_at)
-        VALUES ($1, $2, $3, NOW())
-        RETURNING id, created_at`,
-		chapterID, p.PageNumber, p.ImageURL,
-	).Scan(&p.ID, &p.CreatedAt)
+func (s *Store) CreatePage(chapterID int64, pageNumber int, imageURL string) error {
+	_, err := s.db.Exec(`
+        INSERT INTO pages (chapter_id, page_number, image_url)
+        VALUES ($1, $2, $3)`, chapterID, pageNumber, imageURL)
+	return err
 }
 
 func (s *Store) GetPagesByChapter(chapterID int64) ([]*types.Page, error) {

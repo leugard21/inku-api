@@ -36,6 +36,17 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func AdminOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := r.Context().Value("user").(*Claims)
+		if !ok || claims.Role != "admin" {
+			WriteError(w, http.StatusForbidden, errors.New("admin access required"))
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func GetUserID(r *http.Request) (int64, bool) {
 	id, ok := r.Context().Value(userIDKey).(int64)
 	return id, ok

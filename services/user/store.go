@@ -20,19 +20,19 @@ func (s *Store) CreateUser(user *types.User) error {
 	return s.db.QueryRow(`
 		INSERT INTO users (username, avatar, email, password, created_at)
 		VALUES ($1, $2, $3, $4, NOW())
-		RETURNING id, created_at`,
+		RETURNING id, role, created_at`,
 		user.Username, user.Avatar, user.Email, user.Password,
-	).Scan(&user.ID, &user.CreatedAt)
+	).Scan(&user.ID, &user.Role, &user.CreatedAt)
 }
 
 func (s *Store) GetUserByIdentifier(identifier string) (*types.User, error) {
 	row := s.db.QueryRow(`
-	SELECT id, username, avatar, email, password, created_at
+	SELECT id, username, avatar, email, password, role, created_at
 	FROM users
 	WHERE email = $1 OR username = $1`, identifier)
 
 	var u types.User
-	if err := row.Scan(&u.ID, &u.Username, &u.Avatar, &u.Email, &u.Password, &u.CreatedAt); err != nil {
+	if err := row.Scan(&u.ID, &u.Username, &u.Avatar, &u.Email, &u.Password, &u.Role, &u.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -44,13 +44,13 @@ func (s *Store) GetUserByIdentifier(identifier string) (*types.User, error) {
 
 func (s *Store) GetUserByID(id int64) (*types.User, error) {
 	row := s.db.QueryRow(`
-		SELECT id, username, avatar, email, password, created_at
+		SELECT id, username, avatar, email, password, role, created_at
 		FROM users
 		WHERE id = $1`, id,
 	)
 
 	var u types.User
-	if err := row.Scan(&u.ID, &u.Username, &u.Avatar, &u.Email, &u.Password, &u.CreatedAt); err != nil {
+	if err := row.Scan(&u.ID, &u.Username, &u.Avatar, &u.Email, &u.Password, &u.Role, &u.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
