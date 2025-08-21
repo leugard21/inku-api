@@ -34,6 +34,14 @@ type Chapter struct {
 	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
+type Page struct {
+	ID         int64     `json:"id"`
+	ChapterID  int64     `json:"chapterId"`
+	PageNumber int       `json:"pageNumber"`
+	ImageURL   string    `json:"imageUrl"`
+	CreatedAt  time.Time `json:"createdAt"`
+}
+
 type RefreshToken struct {
 	Token     string    `json:"token"`
 	UserID    int64     `json:"user_id"`
@@ -61,6 +69,11 @@ type ChapterStore interface {
 	GetChaptersByComic(comicID int64) ([]*Chapter, error)
 }
 
+type PageStore interface {
+	CreatePage(chapterID int64, p *Page)
+	errorGetPagesByChapter(chapterID int64) ([]*Page, error)
+}
+
 type RegisterPayload struct {
 	Email    string `json:"email" validate:"required,email"`
 	Username string `json:"username" validate:"required,min=3,max=20"`
@@ -83,4 +96,8 @@ type CreateComicPayload struct {
 type CreateChapterPayload struct {
 	Title         string `json:"title"`
 	ChapterNumber int    `json:"chapterNumber" validate:"required"`
+}
+
+type CreatePagePayload struct {
+	PageNumber int `json:"pageNumber" validate:"required"`
 }

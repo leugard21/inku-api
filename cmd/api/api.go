@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/leugard21/inku-api/services/chapter"
 	"github.com/leugard21/inku-api/services/comic"
+	"github.com/leugard21/inku-api/services/page"
 	"github.com/leugard21/inku-api/services/user"
 )
 
@@ -38,6 +39,10 @@ func (s *APIServer) Run() error {
 	chapterStore := chapter.NewStore(s.db)
 	chapterHandler := chapter.NewHandler(chapterStore)
 	chapterHandler.RegisterRoutes(subrouter)
+
+	pageStore := page.NewStore(s.db)
+	pageHandler := page.NewHandler(pageStore)
+	pageHandler.RegisterRoutes(subrouter)
 
 	router.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 
