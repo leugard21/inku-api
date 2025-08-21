@@ -19,10 +19,19 @@ type Comic struct {
 	Title       string    `json:"title" validate:"required"`
 	Description string    `json:"description"`
 	Author      string    `json:"author"`
-	CoverURL    string    `json:"cover_url"`
+	CoverURL    string    `json:"coverUrl"`
 	Status      string    `json:"status" validate:"oneof=ongoing completed"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type Chapter struct {
+	ID            int64     `json:"id"`
+	ComicID       int64     `json:"comicId"`
+	Title         string    `json:"title"`
+	ChapterNumber int       `json:"chapterNumber"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 type RefreshToken struct {
@@ -47,6 +56,11 @@ type ComicStore interface {
 	GetComicByID(id int64) (*Comic, error)
 }
 
+type ChapterStore interface {
+	CreateChapter(comicID int64, ch *Chapter) error
+	GetChaptersByComic(comicID int64) ([]*Chapter, error)
+}
+
 type RegisterPayload struct {
 	Email    string `json:"email" validate:"required,email"`
 	Username string `json:"username" validate:"required,min=3,max=20"`
@@ -64,4 +78,9 @@ type CreateComicPayload struct {
 	Author      string `json:"author"`
 	CoverURL    string `json:"coverUrl"`
 	Status      string `json:"status" validate:"oneof=ongoing completed"`
+}
+
+type CreateChapterPayload struct {
+	Title         string `json:"title"`
+	ChapterNumber int    `json:"chapterNumber" validate:"required"`
 }
